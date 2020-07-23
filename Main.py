@@ -159,7 +159,7 @@ def save_plot(*args, prediction=False):
 
 
 def loss_func(x, *args):
-    global time_points, input_list, Q, weight, x_, best, num_calls, losses
+    global time_points, input_list, Q, weight, x_, best, num_calls
 
     delta_dates_ = delta_dates + comparison_delta_dates
     pw = bh_pressures
@@ -233,7 +233,7 @@ def loss_func_maximize(x, *args):
 
 
 def loss_func_maximize_P_init_only(p_init_, *args):
-    global time_points, input_list, Q, weight, x_, best, num_calls, losses, x
+    global time_points, input_list, Q, weight, x_, best, num_calls, x
 
     delta_dates_ = delta_dates + comparison_delta_dates
     pw = bh_pressures
@@ -345,7 +345,7 @@ sheet_Q_liq_mod = wb['Q_liq - модель']
 # Индексы скважин, которые будут рассчитаны
 srez_l = 0
 srez_r = len(res_prms)
-srez_r = 2
+# srez_r = 2
 
 comparison_start = datetime(2020, 2, 1) # Дата начала прогноза (включительно)
 considered_period = 165  # Длина периода адаптации, сутки
@@ -458,7 +458,7 @@ for index_, elem in enumerate(res_prms[srez_l:srez_r]):
     P_bh.append(P_bh[-1])
 
     k = len(datetimes_Q_liq) - 1
-    while datetimes_Q_liq[k] >= comparison_start + timedelta(days=comparison_period):
+    while datetimes_Q_liq[k] > comparison_start + timedelta(days=comparison_period):
         k -= 1
     datetimes_Q_liq = datetimes_Q_liq[:k + 1]
     Q_liq = Q_liq[:k + 1]
@@ -610,7 +610,6 @@ for index_, elem in enumerate(res_prms[srez_l:srez_r]):
     best = 1
     x_ = 0
     num_calls = 0
-    losses = []
     Q_arr = np.array([])
     Q_arr_comp = np.array([])
 
