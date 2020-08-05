@@ -179,38 +179,7 @@ def loss_func(x, *args):
     num_calls += 1
     Q = np.array([])
     for t in time_points:
-        # q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=1,
-        #                       skin=x[1], h=5.96, ct= 0.000047936014476, mu=0.338932567825029, bl=1.02787536,
-        #                       rw=0.108, phi=0.15, Wellmodel=2,
-        #                       ReservoirShape=0, BoundaryType=0, xf=94.28,
-        #                       kv_kh=x[2], Fc=10000,
-        #                       w=x[3], l=x[4], wf=0.5, lf=0.5)
-        # q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=1,
-        #               skin=x[1], h=11.35, ct=0.0000557258307023158, mu=0.356131019863818, bl=1.04370981614035,
-        #               rw=0.108, phi=0.145, Wellmodel=WM,
-        #               ReservoirShape=0, BoundaryType=0, xf=94.28,
-        #               kv_kh=x[2], Fc=10000,
-        #               w=x[3], l=x[4], wf=0.5, lf=0.5)
-        # q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=1,
-        #               skin=x[1], h=10, ct=5e-5, mu=1.5, bl=1.2,
-        #               rw=0.1, phi=0.2, Wellmodel=WM,
-        #               ReservoirShape=0, BoundaryType=0, xf=94.28,
-        #               kv_kh=x[2], Fc=10000,
-        #               w=x[3], l=x[4], wf=0.5, lf=0.5)
-        try:
-            q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                          skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                          rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                          ReservoirShape=0, BoundaryType=BoundType, xf=x[5],
-                          Fc=x[6],
-                          w=x[2], l=x[3], wf=0.5, lf=0.5)
-        except:
-            q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                          skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                          rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                          ReservoirShape=0, BoundaryType=BoundType,
-                          w=x[2], l=x[3], wf=0.5, lf=0.5)
-        Q = np.append(Q, q)
+        Q = np.append(Q, Pwf_wrapper(x, t))
     dev = (Q - Q_liq[start_Q_liq:end_Q_liq]) * (Q - Q_liq[start_Q_liq:end_Q_liq])
     loss = np.sqrt(np.sum((dev * weight)) / considered_length)
     print('loss: ' + str(loss) + '  num: ' + str(num_calls))
@@ -219,12 +188,6 @@ def loss_func(x, *args):
         best = loss
         x_ = x
     return loss
-
-
-def check_convergence():
-    def check_conv(x0, convergence):
-        val = loss_func(x0)
-    return check_conv
 
 
 def loss_func_maximize(x, *args):
@@ -251,24 +214,43 @@ def loss_func_maximize_P_init_only(p_init_, *args):
     num_calls += 1
     Q = np.array([])
     for t in time_points:
-        try:
-            q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                          skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                          rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                          ReservoirShape=0, BoundaryType=BoundType, xf=x[5],
-                          Fc=x[6],
-                          w=x[2], l=x[3], wf=0.5, lf=0.5)
-        except:
-            q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                          skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                          rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                          ReservoirShape=0, BoundaryType=BoundType,
-                          w=x[2], l=x[3], wf=0.5, lf=0.5)
-        Q = np.append(Q, q)
+        Q = np.append(Q, Pwf_wrapper(x, t))
     dev = (Q - Q_liq[start_Q_liq:end_Q_liq]) * (Q - Q_liq[start_Q_liq:end_Q_liq])
     loss = np.sqrt(np.sum((dev * weight)) / considered_length)
     print('p_init:  loss: ' + str(loss) + '  num: ' + str(num_calls))
     return -loss
+
+
+def Pwf_wrapper(x, t):
+    if WM[res_prm[1]] == 0:
+        var = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
+                      skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
+                      rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
+                      ReservoirShape=0, BoundaryType=BoundType,
+                      w=x[2], l=x[3], wf=0.5, lf=0.5)
+    elif WM[res_prm[1]] == 1:
+        var = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
+                      skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
+                      rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
+                      ReservoirShape=0, BoundaryType=BoundType,
+                      w=x[2], l=x[3], wf=0.5, lf=0.5,
+                      kv_kh=x[5], l_hor=x[6])
+    elif WM[res_prm[1]] == 2:
+        var = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
+                      skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
+                      rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
+                      ReservoirShape=0, BoundaryType=BoundType,
+                      w=x[2], l=x[3], wf=0.5, lf=0.5,
+                      xf=x[5], Fc=x[6])
+    elif WM[res_prm[1]] == 3:
+        var = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
+                      skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
+                      rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
+                      ReservoirShape=0, BoundaryType=BoundType,
+                      w=x[2], l=x[3], wf=0.5, lf=0.5,
+                      kv_kh=x[5], l_hor=x[6],
+                      xf=x[7], Fc=x[8])
+    return var
 
 
 xl_tech_regime = pd.ExcelFile(
@@ -345,10 +327,10 @@ sheet_Q_liq_mod = wb['Q_liq - модель']
 # Индексы скважин, которые будут рассчитаны
 srez_l = 0
 srez_r = len(res_prms)
-# srez_r = 2
+# srez_r = 1
 
 comparison_start = datetime(2020, 2, 1) # Дата начала прогноза (включительно)
-considered_period = 165  # Длина периода адаптации, сутки
+considered_period = 365  # Длина периода адаптации, сутки
 comparison_period = 90  # Длина периода прогнозирования, сутки
 fill_in_gaps = True # Заполнить пропуски дебита жидкости предыдущими значениями ПРИ ПРОГНОЗЕ
 delete_common_dates = True  # Удалить общие даты для P_bh и Q_liq - иначе порой получаются выбросы в значениях модели
@@ -372,35 +354,6 @@ if equal_time:
     df2 = df2.drop([2, 3])
     df2.columns = df2.iloc[0, :]
     df2 = df2.drop([1])
-
-for row in range(2, len(res_prms[srez_l:srez_r]) + 2):
-    well_num = str(res_prms[srez_l + row - 2][0])
-    cell_abs = sheet_abs.cell(row=row, column=1)
-    cell_abs.value = well_num
-    cell_rel = sheet_rel.cell(row=row, column=1)
-    cell_rel.value = well_num
-    cell_cumul = sheet_cumul.cell(row=row, column=1)
-    cell_cumul.value = well_num
-    cell_cumul_rel = sheet_cumul_rel.cell(row=row, column=1)
-    cell_cumul_rel.value = well_num
-    cell_Q_liq_act = sheet_Q_liq_act.cell(row=row, column=1)
-    cell_Q_liq_act.value = well_num
-    cell_Q_liq_mod = sheet_Q_liq_mod.cell(row=row, column=1)
-    cell_Q_liq_mod.value = well_num
-
-for col in range(2, 92):
-    cell_abs = sheet_abs.cell(row=1, column=col)
-    cell_abs.value = col - 1
-    cell_rel = sheet_rel.cell(row=1, column=col)
-    cell_rel.value = col - 1
-    cell_cumul = sheet_cumul.cell(row=1, column=col)
-    cell_cumul.value = col - 1
-    cell_cumul_rel = sheet_cumul_rel.cell(row=1, column=col)
-    cell_cumul_rel.value = col - 1
-    cell_Q_liq_act = sheet_Q_liq_act.cell(row=1, column=col)
-    cell_Q_liq_act.value = col - 1
-    cell_Q_liq_mod = sheet_Q_liq_mod.cell(row=1, column=col)
-    cell_Q_liq_mod.value = col - 1
 
 """-------------------------------НАЧАЛО - ОБРАБОТКА ДАННЫХ------------------------------------------------"""
 for index_, elem in enumerate(res_prms[srez_l:srez_r]):
@@ -603,7 +556,7 @@ for index_, elem in enumerate(res_prms[srez_l:srez_r]):
     """-------------------------------КОНЕЦ - ОБРАБОТКА ДАННЫХ------------------------------------------------"""
 
 
-    WM = {'ВЕРТ': 0, 'ГОР': 2, 'ннсгрп': 2, 'mfrac': 3}
+    WM = {'ВЕРТ': 0, 'ГОР': 1, 'ннсгрп': 2, 'mfrac': 3}
     BoundType = 0
     Q = []
     Q_comparison = []
@@ -612,13 +565,6 @@ for index_, elem in enumerate(res_prms[srez_l:srez_r]):
     num_calls = 0
     Q_arr = np.array([])
     Q_arr_comp = np.array([])
-
-    # k=x[0], skin=x[1], w=x[2], l=x[3], P_initial=x[4], xf=x[5], Fc=x[6]
-    if WM[res_prm[1]] == 2:
-        bounds = [(0.1, 104), (0.0001, 10), (200, 26500), (200, 26500), (max(bh_pressures), max(bh_pressures) * 3),
-                  (0.1, 100), (100, 10000)]
-    elif WM[res_prm[1]] == 0:
-        bounds = [(0.1, 104), (0.0001, 10), (200, 26500), (200, 26500), (max(bh_pressures), max(bh_pressures) * 3)]
 
     weight = None
 
@@ -635,194 +581,142 @@ for index_, elem in enumerate(res_prms[srez_l:srez_r]):
     # ----------GPSE-----------
     params = {'m': 3, 'step_size_coeff': 10}
     options = {'maxiter': 60, 'final_sten_size': 0.000001}
-    for i in range(1):
-        if WM[res_prm[1]] == 2:
-            bounds = [(0.1, 104), (0.0001, 10), (200, 26500), (200, 26500),
-                      (max(bh_pressures), max(bh_pressures) * 3), (0.1, 100), (100, 10000)]
-        elif WM[res_prm[1]] == 0:
-            bounds = [(0.1, 104), (0.0001, 10), (200, 26500), (200, 26500),
-                      (max(bh_pressures), max(bh_pressures) * 3)]
 
-        q_ = 1
-        start_weight = 1 / q_ ** len(time_points)
-        exp_weight = []
-        for u in range(1, len(time_points) + 1):
-            exp_weight.append(start_weight * q_ ** u)
-        weight = np.array(exp_weight)
-        # weight = [1 for i in range(len(time_points))]
-        num_calls = 0
-        t3 = time.time()
-        x_init = None
-        x_inits = []
-        lcube = lhsmdu.sample(len(bounds), 100, randomSeed=random.randint(1, 10000)).transpose()
-        for elem in lcube:
-            a = elem.tolist()[0]
-            x_sample = []
-            for i in range(len(bounds)):
-                x_sample.append(bounds[i][0] + (bounds[i][1] - bounds[i][0]) * a[i])
-            x_inits.append(x_sample)
-        t = 100000
-        for elem in x_inits:
-            sample_loss = loss_func(elem)
-            if sample_loss < t:
-                t = sample_loss
-                x_init = elem
+    if WM[res_prm[1]] == 0: # Вертикальная
+        # bounds = k=x[0], skin=x[1], w=x[2], l=x[3], P_initial=x[4]
+        bounds = [(0.1, 104), (0.0001, 10), (200, 26500), (200, 26500), (max(bh_pressures), max(bh_pressures) * 3)]
+    elif WM[res_prm[1]] == 1: # Горизонтальная
+        # bounds = k=x[0], skin=x[1], w=x[2], l=x[3], P_initial=x[4], kv_kh=x[5], l_hor = x[6]
+        bounds = [(0.1, 104), (0.0001, 10), (200, 26500), (200, 26500), (max(bh_pressures), max(bh_pressures) * 3),
+                  (0.1, 100), (100, 10000)]
+    elif WM[res_prm[1]] == 2: # ВС с ГРП
+        # bounds = k=x[0], skin=x[1], w=x[2], l=x[3], P_initial=x[4], xf=x[5], Fc=x[6]
+        bounds = [(0.1, 104), (0.0001, 10), (200, 26500), (200, 26500), (max(bh_pressures), max(bh_pressures) * 3),
+                  (0.1, 100), (100, 10000)]
+    elif WM[res_prm[1]] == 3: # ГС МГРП
+        # bounds = k=x[0], skin=x[1], w=x[2], l=x[3], P_initial=x[4], kv_kh=x[5], l_hor = x[6], xf=x[7], Fc=x[8]
+        bounds = [(0.1, 104), (0.0001, 10), (200, 26500), (200, 26500), (max(bh_pressures), max(bh_pressures) * 3),
+                  (0.1, 100), (100, 10000)]
 
-        res = gpse.gpse(fun=loss_func_maximize, x0=x_init, bounds=bounds, options=options, params=params)
-        x = res[0]
-        loss_func(x)
-        save_plot('Fixed_p_init', 1)
+    weight = [1 for i in range(len(time_points))]
+    num_calls = 0
+    t3 = time.time()
+    x_init = None
+    x_inits = []
+    lcube = lhsmdu.sample(len(bounds), 100, randomSeed=random.randint(1, 10000)).transpose()
+    for elem in lcube:
+        a = elem.tolist()[0]
+        x_sample = []
+        for i in range(len(bounds)):
+            x_sample.append(bounds[i][0] + (bounds[i][1] - bounds[i][0]) * a[i])
+        x_inits.append(x_sample)
+    t = 100000
+    for elem in x_inits:
+        sample_loss = loss_func(elem)
+        if sample_loss < t:
+            t = sample_loss
+            x_init = elem
 
-        q_ = 10
-        start_weight = 1 / q_ ** len(time_points)
-        exp_weight = []
-        for i in range(1, len(time_points) + 1):
-            exp_weight.append(start_weight * q_ ** i)
-        weight = np.array(exp_weight)
-        bounds = [(max(bh_pressures), max(bh_pressures) * 4)]
-        x_init = None
-        x_inits = []
-        lcube = lhsmdu.sample(1, 5, randomSeed=random.randint(1, 10000)).transpose()
-        for elem in lcube:
-            a = elem.tolist()[0]
-            a = a[0]
-            x_sample = []
-            x_sample.append(bounds[0][0] + (bounds[0][1] - bounds[0][0]) * a)
-            x_inits.append(x_sample)
-        t = 100000
-        for elem in x_inits:
-            sample_loss = loss_func_maximize_P_init_only(elem)
-            if sample_loss < t:
-                t = sample_loss
-                x_init = elem
-        params = {'m': 3, 'step_size_coeff': 10}
-        options = {'maxiter': 50, 'final_sten_size': 0.00001}
-        res = gpse.gpse(fun=loss_func_maximize_P_init_only, x0=x_init, bounds=bounds, options=options, params=params)
-        p_init = res[0]
-        x[4] = p_init[0]
-        results_q.append(q_)
-        results_x.append(x)
-        results_fun.append(res[1])
-        results_num_calls.append(len(res[2]))
-        results_exec_time.append(time.time() - t3)
-        results_alg_name.append('-GPSE- ')
-        loss_func_maximize_P_init_only(res[0])
-        save_plot('Adaptation', q_)
+    res = gpse.gpse(fun=loss_func_maximize, x0=x_init, bounds=bounds, options=options, params=params)
+    x = res[0]
+    loss_func(x)
+    save_plot('Fixed_p_init', 1)
 
-        delta_dates_ = delta_dates + comparison_delta_dates
-        pw = bh_pressures
-        pw.append(pw[-1])
-        time_moments = [np.sum(delta_dates_[:i + 1]) for i in range(len(delta_dates_))]
-        time_moments.insert(0, 0)
-        delta_p = [bh_pressures[0] - bh_pressures[i] for i in range(1, len(bh_pressures))]
-        delta_p.append(delta_p[-1])
-        slope = [-(pw[i + 1] - pw[i]) / delta_dates_[i] for i in range(len(delta_dates_))]
-        free_term = [x[4] - (pw[i] * time_moments[i + 1] - pw[i + 1] * time_moments[i]) / delta_dates_[i] for i in
-                     range(len(delta_dates_))]
+    q_ = 10
+    start_weight = 1 / q_ ** len(time_points)
+    weight = np.array([start_weight * q_ ** i for i in range(1, len(time_points) + 1)])
+    bound = [(max(bh_pressures), max(bh_pressures) * 4)]
+    x_init = None
+    x_inits = []
+    lcube = lhsmdu.sample(1, 5, randomSeed=random.randint(1, 10000)).transpose()
+    for elem in lcube:
+        a = elem.tolist()[0]
+        a = a[0]
+        x_sample = []
+        x_sample.append(bound[0][0] + (bound[0][1] - bound[0][0]) * a)
+        x_inits.append(x_sample)
+    t = 100000
+    for elem in x_inits:
+        sample_loss = loss_func_maximize_P_init_only(elem)
+        if sample_loss < t:
+            t = sample_loss
+            x_init = elem
 
-        input_list = [(delta_dates_[i] / 24, delta_p[i], slope[i], free_term[i]) for i in range(len(delta_dates_))]
+    params = {'m': 3, 'step_size_coeff': 10}
+    options = {'maxiter': 50, 'final_sten_size': 0.00001}
+    res = gpse.gpse(fun=loss_func_maximize_P_init_only, x0=x_init, bounds=bound, options=options, params=params)
 
-        Q = np.array([])
-        Q_comparison = np.array([])
-        for t in time_points:
-            try:
-                q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                              skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                              rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                              ReservoirShape=0, BoundaryType=BoundType, xf=x[5],
-                              Fc=x[6],
-                              w=x[2], l=x[3], wf=0.5, lf=0.5)
-            except:
-                q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                              skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                              rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                              ReservoirShape=0, BoundaryType=BoundType,
-                              w=x[2], l=x[3], wf=0.5, lf=0.5)
-            Q = np.append(Q, q)
-        for t in comparison_points:
-            try:
-                q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                              skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                              rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                              ReservoirShape=0, BoundaryType=BoundType, xf=x[5],
-                              Fc=x[6],
-                              w=x[2], l=x[3], wf=0.5, lf=0.5)
-            except:
-                q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                              skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                              rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                              ReservoirShape=0, BoundaryType=BoundType,
-                              w=x[2], l=x[3], wf=0.5, lf=0.5)
-            Q_comparison = np.append(Q_comparison, q)
-        save_plot('Prediction-', q_, prediction=True)
-        save_hist('Prediction-', q_)
-        save_cumul('Prediction-', q_)
-        dev = (Q - Q_liq[start_Q_liq:end_Q_liq]) * (Q - Q_liq[start_Q_liq:end_Q_liq])
-        erro = np.sqrt(np.sum((dev * weight)) / considered_length)
-        if len(Q_comparison) > 0:
-            write_excel(index_ + 2)
+    p_init = res[0]
+    x[4] = p_init[0]
+    results_q.append(q_)
+    results_x.append(x)
+    results_fun.append(res[1])
+    results_exec_time.append(time.time() - t3)
+    results_alg_name.append('-GPSE- ')
+    loss_func_maximize_P_init_only(res[0])
+    save_plot('Adaptation', q_)
 
-    # ----------Diff. Evolution-----------
-    for i in range(500, 500):
-        num_calls = 0
-        t1 = time.time()
-        result = differential_evolution(loss_func, bounds, maxiter=8, popsize=2 * (len(bounds) + 1), workers=1,
-                                        disp=True, callback=check_convergence(), polish=False)
-        results_q.append(q_)
-        results_x.append(result.x)
-        results_fun.append(result.fun)
-        results_num_calls.append(num_calls)
-        results_exec_time.append(time.time() - t1)
-        results_alg_name.append('-Diff.Ev.- ')
-        results_P_initial.append(result.x[4])
-        print('      P_initial =  ' + str(result.x[4]))
-        loss_func(result.x)
-        save_plot('-Diff.Ev.', q_)
+    """-------------------------------ПРОГНОЗ------------------------------------------------"""
 
-        x = result.x
-        delta_dates_ = delta_dates + comparison_delta_dates
-        bh_pressures_ = bh_pressures
-        input_list = [(delta_dates_[i] / 24, x[4] - bh_pressures_[i]) for i in range(len(delta_dates_))]
-        Q = np.array([])
-        Q_comparison = np.array([])
-        for t in time_points:
-            try:
-                q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                              skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                              rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                              ReservoirShape=0, BoundaryType=BoundType, xf=x[5],
-                              Fc=x[6],
-                              w=x[2], l=x[3], wf=0.5, lf=0.5)
-            except:
-                q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                              skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                              rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                              ReservoirShape=0, BoundaryType=BoundType,
-                              w=x[2], l=x[3], wf=0.5, lf=0.5)
-            Q = np.append(Q, q)
-        for t in comparison_points:
-            try:
-                q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                              skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                              rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                              ReservoirShape=0, BoundaryType=BoundType, xf=x[5],
-                              Fc=x[6],
-                              w=x[2], l=x[3], wf=0.5, lf=0.5)
-            except:
-                q = Pwf_Ql_Qt(t=t, Regimes=input_list, k=x[0], regimes_flag=2,
-                              skin=x[1], h=res_prm[7], ct=res_prm[8], mu=res_prm[5], bl=res_prm[6],
-                              rw=res_prm[3], phi=res_prm[4], Wellmodel=WM[res_prm[1]],
-                              ReservoirShape=0, BoundaryType=BoundType,
-                              w=x[2], l=x[3], wf=0.5, lf=0.5)
-            Q_comparison = np.append(Q_comparison, q)
-        save_plot('-Diff.Ev.-prediction-', q_, prediction=True)
-        save_hist('-Diff.Ev.-prediction-', q_)
-        save_cumul('-Diff.Ev.-prediction-', q_)
-        Q_second = np.copy(Q)
-        Q_second_comp = np.copy(Q_comparison)
+
+    delta_dates_ = delta_dates + comparison_delta_dates
+    pw = bh_pressures
+    pw.append(pw[-1])
+    time_moments = [np.sum(delta_dates_[:i + 1]) for i in range(len(delta_dates_))]
+    time_moments.insert(0, 0)
+    delta_p = [bh_pressures[0] - bh_pressures[i] for i in range(1, len(bh_pressures))]
+    delta_p.append(delta_p[-1])
+    slope = [-(pw[i + 1] - pw[i]) / delta_dates_[i] for i in range(len(delta_dates_))]
+    free_term = [x[4] - (pw[i] * time_moments[i + 1] - pw[i + 1] * time_moments[i]) / delta_dates_[i] for i in
+                 range(len(delta_dates_))]
+
+    input_list = [(delta_dates_[i] / 24, delta_p[i], slope[i], free_term[i]) for i in range(len(delta_dates_))]
+
+    Q = np.array([])
+    Q_comparison = np.array([])
+    for t in time_points:
+        Q = np.append(Q, Pwf_wrapper(x, t))
+    for t in comparison_points:
+        Q_comparison = np.append(Q_comparison, Pwf_wrapper(x, t))
+    save_plot('Prediction-', q_, prediction=True)
+    save_hist('Prediction-', q_)
+    save_cumul('Prediction-', q_)
+    dev = (Q - Q_liq[start_Q_liq:end_Q_liq]) * (Q - Q_liq[start_Q_liq:end_Q_liq])
+    erro = np.sqrt(np.sum((dev * weight)) / considered_length)
+    if len(Q_comparison) > 0:
+        write_excel(index_ + 2)
+
     print('exec time : ' + str(time.time() - start_time))
 
     """-------------------------------КОНЕЦ ОПТИМИЗАЦИИ------------------------------------------------"""
+    for row in range(2, len(res_prms[srez_l:srez_r]) + 2):
+        well_num = str(res_prms[srez_l + row - 2][0])
+        cell_abs = sheet_abs.cell(row=row, column=1)
+        cell_abs.value = well_num
+        cell_rel = sheet_rel.cell(row=row, column=1)
+        cell_rel.value = well_num
+        cell_cumul = sheet_cumul.cell(row=row, column=1)
+        cell_cumul.value = well_num
+        cell_cumul_rel = sheet_cumul_rel.cell(row=row, column=1)
+        cell_cumul_rel.value = well_num
+        cell_Q_liq_act = sheet_Q_liq_act.cell(row=row, column=1)
+        cell_Q_liq_act.value = well_num
+        cell_Q_liq_mod = sheet_Q_liq_mod.cell(row=row, column=1)
+        cell_Q_liq_mod.value = well_num
+
+    for col in range(2, 92):
+        cell_abs = sheet_abs.cell(row=1, column=col)
+        cell_abs.value = col - 1
+        cell_rel = sheet_rel.cell(row=1, column=col)
+        cell_rel.value = col - 1
+        cell_cumul = sheet_cumul.cell(row=1, column=col)
+        cell_cumul.value = col - 1
+        cell_cumul_rel = sheet_cumul_rel.cell(row=1, column=col)
+        cell_cumul_rel.value = col - 1
+        cell_Q_liq_act = sheet_Q_liq_act.cell(row=1, column=col)
+        cell_Q_liq_act.value = col - 1
+        cell_Q_liq_mod = sheet_Q_liq_mod.cell(row=1, column=col)
+        cell_Q_liq_mod.value = col - 1
 
     if len(Q_comparison) > 0:
         write_excel(index_ + 2)
@@ -834,7 +728,6 @@ for index_, elem in enumerate(res_prms[srez_l:srez_r]):
             f.write(str(results_q[i]) + str(results_alg_name[i]) + '\n')
             f.write('\tx_optimum = ' + str(results_x[i]) + '\n')
             f.write('\tloss function value = ' + str(abs(results_fun[i])) + '\n')
-            f.write('\titerations = ' + str(results_num_calls[i]) + '\n')
             f.write('\tWell num: ' + str(well_num) + '\n')
             f.write('\tWell model: ' + str(res_prm[1]) + '\n')
             f.write('\texec_time, sec = ' + str(results_exec_time[i]) + '\n')
