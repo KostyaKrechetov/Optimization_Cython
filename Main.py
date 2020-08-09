@@ -1,17 +1,17 @@
 ﻿import os
-import time
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta, date
-from math import sqrt, isnan
-from scipy.optimize import differential_evolution
-import gpse
-import lhsmdu
-import openpyxl
 import random
 import re
+import time
+from datetime import datetime, timedelta
+from math import isnan
 
+import lhsmdu
+import matplotlib.pyplot as plt
+import numpy as np
+import openpyxl
+import pandas as pd
+
+import gpse
 from Calculations.Welltest import Pwf_Ql_Qt
 
 Q_liq_ = datetimes_Q_liq_ = date_diffs = deltas = difference = percentage = cumul_summ_diff = cumul_summ_diff_rel = None
@@ -159,7 +159,7 @@ def save_plot(*args, prediction=False):
 
 
 def loss_func(x, *args):
-    global time_points, input_list, Q, weight, x_, best, num_calls
+    global time_points, input_list, Q, weight, x_, num_calls
 
     delta_dates_ = delta_dates + comparison_delta_dates
     pw = bh_pressures
@@ -183,10 +183,6 @@ def loss_func(x, *args):
     dev = (Q - Q_liq[start_Q_liq:end_Q_liq]) * (Q - Q_liq[start_Q_liq:end_Q_liq])
     loss = np.sqrt(np.sum((dev * weight)) / considered_length)
     print('loss: ' + str(loss) + '  num: ' + str(num_calls))
-    # losses.append(loss)
-    if loss <= best:
-        best = loss
-        x_ = x
     return loss
 
 
@@ -196,7 +192,7 @@ def loss_func_maximize(x, *args):
 
 
 def loss_func_maximize_P_init_only(p_init_, *args):
-    global time_points, input_list, Q, weight, x_, best, num_calls, x
+    global time_points, input_list, Q, weight, x_, num_calls, x
 
     delta_dates_ = delta_dates + comparison_delta_dates
     pw = bh_pressures
@@ -560,7 +556,6 @@ for index_, elem in enumerate(res_prms[srez_l:srez_r]):
     BoundType = 0
     Q = []
     Q_comparison = []
-    best = 1
     x_ = 0
     num_calls = 0
     Q_arr = np.array([])
@@ -619,7 +614,7 @@ for index_, elem in enumerate(res_prms[srez_l:srez_r]):
 
     res = gpse.gpse(fun=loss_func_maximize, x0=x_init, bounds=bounds, options=options, params=params)
     x = res[0]
-    loss_func(x)
+    final_error = loss_func(x)
     save_plot('Fixed_p_init', 1)
 
     q_ = 10
